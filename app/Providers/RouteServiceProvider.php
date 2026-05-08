@@ -90,9 +90,9 @@ class RouteServiceProvider extends ServiceProvider
 
     $this->mapRedxRoutes();
     
+    $this->mapInstallRoutes();
+    
     $this->mapWebRoutes();
-
-    // $this->mapInstallRoutes();
 
     // $this->mapUpdateRoutes();
   }

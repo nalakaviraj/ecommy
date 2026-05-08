@@ -59,7 +59,7 @@ class InstallController extends Controller
         }
         Session::put('purchase_code', $request->purchase_code);
         $this->writeEnvironmentFile('SYSTEM_KEY', $request->system_key);
-        return redirect('step3');
+        return redirect()->route('step3');
     }
 
     public function system_settings(Request $request) {
@@ -108,42 +108,62 @@ class InstallController extends Controller
                 foreach ($request->types as $type) {
                     $this->writeEnvironmentFile($type, $request[$type]);
                 }
-                return redirect('step4');
+                return redirect()->route('step4');
             }else {
-                return redirect('step3');
+                return redirect()->route('step3');
             }
         }else {
-            return redirect('step3/database_error');
+            return redirect()->route('step3', ['error' => 'database_error']);
         }
     }
 
     public function import_sql() {
         $sql_path = base_path('shop.sql');
+        if (!file_exists($sql_path)) {
+            flash('Missing required file: shop.sql. Please place it at '.$sql_path)->error();
+            return redirect()->route('step4');
+        }
         DB::unprepared(file_get_contents($sql_path));
-        return redirect('step5');
+        return redirect()->route('step5');
     }
 
     public function import_sql_with_demo() {
         $sql_path = base_path('shop.sql');
+        if (!file_exists($sql_path)) {
+            flash('Missing required file: shop.sql. Please place it at '.$sql_path)->error();
+            return redirect()->route('step4');
+        }
         DB::unprepared(file_get_contents($sql_path));
 
         // import sql
         $sql_path = base_path('public/demo.sql');
+        if (!file_exists($sql_path)) {
+            flash('Missing required file: public/demo.sql')->error();
+            return redirect()->route('step4');
+        }
         DB::unprepared(file_get_contents($sql_path));
 
         // extract images
+        if (!file_exists(base_path('public/uploads.zip'))) {
+            flash('Missing required file: public/uploads.zip')->error();
+            return redirect()->route('step4');
+        }
         $zip = new ZipArchive;
         $zip->open(base_path('public/uploads.zip'));
         $zip->extractTo('public/uploads/all/');
         flash(translate('Demo data uploaded successfully'))->success();
-        return redirect('step5');
+        return redirect()->route('step5');
     }
 
     function check_database_connection($db_host = "", $db_name = "", $db_user = "", $db_pass = "") {
-
-        if(@mysqli_connect($db_host, $db_user, $db_pass, $db_name)) {
-            return true;
-        }else {
+        try {
+            $connection = @mysqli_connect($db_host, $db_user, $db_pass, $db_name);
+            if ($connection) {
+                mysqli_close($connection);
+                return true;
+            }
+            return false;
+        } catch (\Throwable $e) {
             return false;
         }
     }
